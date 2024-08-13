@@ -30,7 +30,9 @@ mydb = mysql.connector.connect(
     host="202.28.34.197",
     user="web65_64011212185",
     password="64011212185@csmsu",
-    database="web65_64011212185" 
+    database="web65_64011212185",
+    connect_timeout=60,  # เพิ่ม timeout
+    read_timeout=60
 )
 mycursor = mydb.cursor()
 
