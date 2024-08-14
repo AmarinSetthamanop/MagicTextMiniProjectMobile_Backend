@@ -12,7 +12,7 @@ import datetime
 from fastapi.middleware.cors import CORSMiddleware #เพื่อจัดการกับ Cross-Origin Resource Sharing (CORS) เป็นเทคโนโลยีที่อนุญาตให้เว็บแอปพลิเคชันทำงานร่วมกับแหล่งที่มาจากโดเมนอื่นๆ
 
 # ถ้าจะทดสอบ ต้องเป็น IP ของ เน็จที่เชื่อมต่อ ณ ขณะนั้น (แนะนำให้ใช้ IP เน็ตมือถือ)
-# uvicorn main:app --host 10.160.10.213 --port 8080
+# uvicorn main:app --host 192.168.124.29 --port 8080
 
 app = FastAPI()
 
@@ -163,36 +163,13 @@ async def insert_user(user: User):
 #             myresult = mycursor.fetchall()
 #             return {"UID": myresult[0][0], "name": myresult[0][1], "email": myresult[0][2], "password": myresult[0][3], "photo": myresult[0][4], "friend_count": myresult[0][5]}
 #         else:
-
 #             print(myresult[0][3].encode())##############################
-
 #             raise HTTPException(status_code=401, detail="The password is incorrect.")
 #     else:
 #         raise HTTPException(status_code=404, detail="This name or email was not found.")
-# @app.post("/user/LogIn")
-# async def user_LogIn(logIn: LogIn):
-#     with next(get_cursor()) as cursor:
-#         sql = "SELECT * FROM User WHERE name = %s OR email = %s"
-#         val = (logIn.name_or_email, logIn.name_or_email)
-#         cursor.execute(sql, val)
-#         myresult = cursor.fetchall()
-#         if myresult:
-#             UID = myresult[0][0]
-#             if bcrypt.checkpw(logIn.password.encode(), myresult[0][3].encode()):
-#                 sql = "SELECT User.UID, User.name, User.email, User.password, User.photo, COUNT(Friend.UID) AS friend_count FROM User LEFT JOIN Friend ON User.UID = Friend.UID WHERE User.UID = %s GROUP BY User.UID, User.name, User.email, User.password, User.photo"
-#                 val = (UID, )
-#                 cursor.execute(sql, val)
-#                 myresult = cursor.fetchall()
-#                 return {"UID": myresult[0][0], "name": myresult[0][1], "email": myresult[0][2], "password": myresult[0][3], "photo": myresult[0][4], "friend_count": myresult[0][5]}
-#             else:
-#                 raise HTTPException(status_code=401, detail="The password is incorrect.")
-#         else:
-#             raise HTTPException(status_code=404, detail="This name or email was not found.")
 @app.post("/user/LogIn")
 async def user_LogIn(logIn: LogIn):
-    try:
-        conn = mydb.get_connection()
-        cursor = conn.cursor()
+    with next(get_cursor()) as cursor:
         sql = "SELECT * FROM User WHERE name = %s OR email = %s"
         val = (logIn.name_or_email, logIn.name_or_email)
         cursor.execute(sql, val)
@@ -200,34 +177,15 @@ async def user_LogIn(logIn: LogIn):
         if myresult:
             UID = myresult[0][0]
             if bcrypt.checkpw(logIn.password.encode(), myresult[0][3].encode()):
-                sql = """
-                SELECT User.UID, User.name, User.email, User.password, User.photo, 
-                       COUNT(Friend.UID) AS friend_count 
-                FROM User 
-                LEFT JOIN Friend ON User.UID = Friend.UID 
-                WHERE User.UID = %s 
-                GROUP BY User.UID, User.name, User.email, User.password, User.photo
-                """
-                val = (UID,)
+                sql = "SELECT User.UID, User.name, User.email, User.password, User.photo, COUNT(Friend.UID) AS friend_count FROM User LEFT JOIN Friend ON User.UID = Friend.UID WHERE User.UID = %s GROUP BY User.UID, User.name, User.email, User.password, User.photo"
+                val = (UID, )
                 cursor.execute(sql, val)
                 myresult = cursor.fetchall()
-                return {
-                    "UID": myresult[0][0],
-                    "name": myresult[0][1],
-                    "email": myresult[0][2],
-                    "password": myresult[0][3],
-                    "photo": myresult[0][4],
-                    "friend_count": myresult[0][5]
-                }
+                return {"UID": myresult[0][0], "name": myresult[0][1], "email": myresult[0][2], "password": myresult[0][3], "photo": myresult[0][4], "friend_count": myresult[0][5]}
             else:
-                raise HTTPException(status_code=401, detail="รหัสผ่านไม่ถูกต้อง")
+                raise HTTPException(status_code=401, detail="The password is incorrect.")
         else:
-            raise HTTPException(status_code=404, detail="ชื่อหรืออีเมลไม่พบ")
-    except mysql.connector.Error as err:
-        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
-    finally:
-        cursor.close()
-        conn.close()
+            raise HTTPException(status_code=404, detail="This name or email was not found.")
 
 
 # API ในการเเสดงผู้ใช้ทั้งหมดที่ไม่ใช่เพื่อน รับพารามิเตอร์ UID ของเราเอง
@@ -269,44 +227,20 @@ async def getUser(UID: int):
 #         user_dict = {"UID": user_data[0], "name": user_data[1], "email": user_data[2], "password": user_data[3], "photo": user_data[4]}
 #         user_list.append(user_dict)
 #     return user_list
-# @app.get("/user/name/{name}/UID/{UID}")
-# async def getUsers(name: str, UID: int):
-#     with next(get_cursor()) as cursor:
-#         sql = "SELECT User.* FROM User LEFT JOIN Friend ON User.UID = Friend.friendID AND Friend.UID = %s WHERE Friend.FID IS NULL AND User.UID <> %s AND User.name LIKE %s"
-#         NameData = '%' + name + '%'
-#         val = (UID, UID, NameData)
-#         cursor.execute(sql, val)
-#         myresult = cursor.fetchall() 
-#         user_list = []
-#         for user_data in myresult:
-#             user_dict = {"UID": user_data[0], "name": user_data[1], "email": user_data[2], "password": user_data[3], "photo": user_data[4]}
-#             user_list.append(user_dict)
-#         return user_list
-@app.get("/user/{user_id}")
+@app.get("/user/name/{name}/UID/{UID}")
 async def getUsers(name: str, UID: int):
-    try:
-        conn = mydb.get_connection()
-        cursor = conn.cursor()
+    with next(get_cursor()) as cursor:
         sql = "SELECT User.* FROM User LEFT JOIN Friend ON User.UID = Friend.friendID AND Friend.UID = %s WHERE Friend.FID IS NULL AND User.UID <> %s AND User.name LIKE %s"
         NameData = '%' + name + '%'
         val = (UID, UID, NameData)
         cursor.execute(sql, val)
-        result = cursor.fetchone()
-        if result:
-            user_list = []
-            for user_data in result:
-                user_dict = {"UID": user_data[0], "name": user_data[1], "email": user_data[2], "password": user_data[3], "photo": user_data[4]}
-                user_list.append(user_dict)
-            return user_list
-        else:
-            return []
-            # raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้")
-    except mysql.connector.Error as err:
-        print(f"Database error: {err}")
-        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
-    finally:
-        cursor.close()
-        conn.close()
+        myresult = cursor.fetchall() 
+        user_list = []
+        for user_data in myresult:
+            user_dict = {"UID": user_data[0], "name": user_data[1], "email": user_data[2], "password": user_data[3], "photo": user_data[4]}
+            user_list.append(user_dict)
+        return user_list
+
 
 # API ในการ update ข้อมูลผู้ใช้ โดยรับพารามิเตอร์คือ UID ที่ต้องการ update , name, password, photo
 # @app.put("/update/user/{UID}")
@@ -352,41 +286,18 @@ async def update_User(UID: int, user_data: Request):
 #         image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2] , "UID": image_data[3]}
 #         image_list.append(image_dict)
 #     return image_list
-# @app.get("/user/image/{UID}")
-# async def getImages(UID: int):
-#     with next(get_cursor()) as cursor:
-#         sql = "SELECT Image.MID, Image.name, Image.base64, Image.UID FROM User INNER JOIN Image ON User.UID = Image.UID WHERE User.UID = %s"
-#         val = UID
-#         cursor.execute(sql, (val, ))
-#         myresult = cursor.fetchall()
-#         image_list = []
-#         for image_data in myresult:
-#             image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2], "UID": image_data[3]}
-#             image_list.append(image_dict)
-#         return image_list
-@app.get("/user/image/{user_id}")
-async def getImages(user_id: int):
-    try:
-        conn = mydb.get_connection()
-        cursor = conn.cursor()
+@app.get("/user/image/{UID}")
+async def getImages(UID: int):
+    with next(get_cursor()) as cursor:
         sql = "SELECT Image.MID, Image.name, Image.base64, Image.UID FROM User INNER JOIN Image ON User.UID = Image.UID WHERE User.UID = %s"
-        cursor.execute(sql, (user_id,))
-        result = cursor.fetchone()
-        if result:
-            image_list = []
-            for image_data in result:
-                image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2], "UID": image_data[3]}
-                image_list.append(image_dict)
-            return image_list
-        else:
-            # raise HTTPException(status_code=404, detail="ไม่พบรูปภาพ")
-            return []
-    except mysql.connector.Error as err:
-        print(f"Database error: {err}")
-        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
-    finally:
-        cursor.close()
-        conn.close()
+        val = UID
+        cursor.execute(sql, (val, ))
+        myresult = cursor.fetchall()
+        image_list = []
+        for image_data in myresult:
+            image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2], "UID": image_data[3]}
+            image_list.append(image_dict)
+        return image_list
 
 
 # API ในการเพิ่มรูปภาพของผู้ใช้นั้นๆ รับพารามิเตอร์ name = ชื่อของรูปภาพ, base64 = ข้อมูลรูปภาพ, UID = ของผู้ใช้
@@ -481,46 +392,18 @@ async def insert_friend(friend_model : Request):
 #         friend_dict = {"FID": friend_data[0], "friendID": friend_data[1], "name": friend_data[2], "photo": friend_data[3]}
 #         friend_list.append(friend_dict)
 #     return friend_list
-# @app.get("/friend/{UID}")
-# async def get_friend(UID: int):
-#     with next(get_cursor()) as cursor:
-#         sql = "SELECT Friend.FID, Friend.friendID, User.name, User.photo FROM Friend INNER JOIN User ON Friend.friendID = User.UID WHERE Friend.UID = %s"
-#         val = UID
-#         cursor.execute(sql, (val, ))
-#         myresult = cursor.fetchall()
-#         friend_list = []
-#         for friend_data in myresult:
-#             friend_dict = {"FID": friend_data[0], "friendID": friend_data[1], "name": friend_data[2], "photo": friend_data[3]}
-#             friend_list.append(friend_dict)
-#         return friend_list
-@app.get("/friend/{user_id}")
-async def get_friend(user_id: int):
-    conn = None
-    cursor = None
-    try:
-        conn = mydb.get_connection()
-        cursor = conn.cursor()
+@app.get("/friend/{UID}")
+async def get_friend(UID: int):
+    with next(get_cursor()) as cursor:
         sql = "SELECT Friend.FID, Friend.friendID, User.name, User.photo FROM Friend INNER JOIN User ON Friend.friendID = User.UID WHERE Friend.UID = %s"
-        cursor.execute(sql, (user_id,))
-        result = cursor.fetchone()
-        if result:
-            friend_list = []
-            for friend_data in result:
-                friend_dict = {"FID": friend_data[0], "friendID": friend_data[1], "name": friend_data[2], "photo": friend_data[3]}
-                friend_list.append(friend_dict)
-            return friend_list
-        else:
-            return []
-            # raise HTTPException(status_code=404, detail="ไม่พบข้อมูลเพื่อน")
-    except mysql.connector.Error as err:
-        # เพิ่มการดีบั๊กสำหรับข้อผิดพลาดฐานข้อมูล
-        print(f"Database error: {err}")
-        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        val = UID
+        cursor.execute(sql, (val, ))
+        myresult = cursor.fetchall()
+        friend_list = []
+        for friend_data in myresult:
+            friend_dict = {"FID": friend_data[0], "friendID": friend_data[1], "name": friend_data[2], "photo": friend_data[3]}
+            friend_list.append(friend_dict)
+        return friend_list
 
 
 # API ในการลบเพื่อนของผู้ใช้คนนั้นๆ รับพารามิเตอร์คือ friendID = ไอดีของเพื่อน, UID = ไอดีของตัวเอง
