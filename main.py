@@ -169,9 +169,30 @@ async def insert_user(user: User):
 #             raise HTTPException(status_code=401, detail="The password is incorrect.")
 #     else:
 #         raise HTTPException(status_code=404, detail="This name or email was not found.")
+# @app.post("/user/LogIn")
+# async def user_LogIn(logIn: LogIn):
+#     with next(get_cursor()) as cursor:
+#         sql = "SELECT * FROM User WHERE name = %s OR email = %s"
+#         val = (logIn.name_or_email, logIn.name_or_email)
+#         cursor.execute(sql, val)
+#         myresult = cursor.fetchall()
+#         if myresult:
+#             UID = myresult[0][0]
+#             if bcrypt.checkpw(logIn.password.encode(), myresult[0][3].encode()):
+#                 sql = "SELECT User.UID, User.name, User.email, User.password, User.photo, COUNT(Friend.UID) AS friend_count FROM User LEFT JOIN Friend ON User.UID = Friend.UID WHERE User.UID = %s GROUP BY User.UID, User.name, User.email, User.password, User.photo"
+#                 val = (UID, )
+#                 cursor.execute(sql, val)
+#                 myresult = cursor.fetchall()
+#                 return {"UID": myresult[0][0], "name": myresult[0][1], "email": myresult[0][2], "password": myresult[0][3], "photo": myresult[0][4], "friend_count": myresult[0][5]}
+#             else:
+#                 raise HTTPException(status_code=401, detail="The password is incorrect.")
+#         else:
+#             raise HTTPException(status_code=404, detail="This name or email was not found.")
 @app.post("/user/LogIn")
 async def user_LogIn(logIn: LogIn):
-    with next(get_cursor()) as cursor:
+    try:
+        conn = mydb.get_connection()
+        cursor = conn.cursor()
         sql = "SELECT * FROM User WHERE name = %s OR email = %s"
         val = (logIn.name_or_email, logIn.name_or_email)
         cursor.execute(sql, val)
@@ -179,16 +200,35 @@ async def user_LogIn(logIn: LogIn):
         if myresult:
             UID = myresult[0][0]
             if bcrypt.checkpw(logIn.password.encode(), myresult[0][3].encode()):
-                sql = "SELECT User.UID, User.name, User.email, User.password, User.photo, COUNT(Friend.UID) AS friend_count FROM User LEFT JOIN Friend ON User.UID = Friend.UID WHERE User.UID = %s GROUP BY User.UID, User.name, User.email, User.password, User.photo"
-                val = (UID, )
+                sql = """
+                SELECT User.UID, User.name, User.email, User.password, User.photo, 
+                       COUNT(Friend.UID) AS friend_count 
+                FROM User 
+                LEFT JOIN Friend ON User.UID = Friend.UID 
+                WHERE User.UID = %s 
+                GROUP BY User.UID, User.name, User.email, User.password, User.photo
+                """
+                val = (UID,)
                 cursor.execute(sql, val)
                 myresult = cursor.fetchall()
-                return {"UID": myresult[0][0], "name": myresult[0][1], "email": myresult[0][2], "password": myresult[0][3], "photo": myresult[0][4], "friend_count": myresult[0][5]}
+                return {
+                    "UID": myresult[0][0],
+                    "name": myresult[0][1],
+                    "email": myresult[0][2],
+                    "password": myresult[0][3],
+                    "photo": myresult[0][4],
+                    "friend_count": myresult[0][5]
+                }
             else:
-                raise HTTPException(status_code=401, detail="The password is incorrect.")
+                raise HTTPException(status_code=401, detail="รหัสผ่านไม่ถูกต้อง")
         else:
-            raise HTTPException(status_code=404, detail="This name or email was not found.")
-        
+            raise HTTPException(status_code=404, detail="ชื่อหรืออีเมลไม่พบ")
+    except mysql.connector.Error as err:
+        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
+    finally:
+        cursor.close()
+        conn.close()
+
 
 # API ในการเเสดงผู้ใช้ทั้งหมดที่ไม่ใช่เพื่อน รับพารามิเตอร์ UID ของเราเอง
 # @app.get("/user/{UID}")
