@@ -328,18 +328,35 @@ async def update_User(UID: int, user_data: Request):
 #         image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2] , "UID": image_data[3]}
 #         image_list.append(image_dict)
 #     return image_list
-@app.get("/user/image/{UID}")
-async def getImages(UID: int):
-    with next(get_cursor()) as cursor:
-        sql = "SELECT Image.MID, Image.name, Image.base64, Image.UID FROM User INNER JOIN Image ON User.UID = Image.UID WHERE User.UID = %s"
-        val = UID
-        cursor.execute(sql, (val, ))
-        myresult = cursor.fetchall()
-        image_list = []
-        for image_data in myresult:
-            image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2], "UID": image_data[3]}
-            image_list.append(image_dict)
-        return image_list
+# @app.get("/user/image/{UID}")
+# async def getImages(UID: int):
+#     with next(get_cursor()) as cursor:
+#         sql = "SELECT Image.MID, Image.name, Image.base64, Image.UID FROM User INNER JOIN Image ON User.UID = Image.UID WHERE User.UID = %s"
+#         val = UID
+#         cursor.execute(sql, (val, ))
+#         myresult = cursor.fetchall()
+#         image_list = []
+#         for image_data in myresult:
+#             image_dict = {"MID": image_data[0], "name": image_data[1], "base64": image_data[2], "UID": image_data[3]}
+#             image_list.append(image_dict)
+#         return image_list
+@app.get("/user/image/{user_id}")
+async def getImages(user_id: int):
+    try:
+        conn = mydb.get_connection()
+        cursor = conn.cursor()
+        sql = "SELECT image FROM Images WHERE user_id = %s"
+        cursor.execute(sql, (user_id,))
+        result = cursor.fetchone()
+        if result:
+            return {"image": result[0]}
+        else:
+            raise HTTPException(status_code=404, detail="ไม่พบรูปภาพ")
+    except mysql.connector.Error as err:
+        raise HTTPException(status_code=500, detail=f"ข้อผิดพลาดฐานข้อมูล: {err}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # API ในการเพิ่มรูปภาพของผู้ใช้นั้นๆ รับพารามิเตอร์ name = ชื่อของรูปภาพ, base64 = ข้อมูลรูปภาพ, UID = ของผู้ใช้
