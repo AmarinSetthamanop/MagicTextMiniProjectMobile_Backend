@@ -26,14 +26,26 @@ app.add_middleware(
 )
 
 # Connect Database
-mydb = mysql.connector.connect(
+# mydb = mysql.connector.connect(
+#     host="202.28.34.197",
+#     user="web65_64011212185",
+#     password="64011212185@csmsu",
+#     database="web65_64011212185",
+#     connect_timeout=60,  # เพิ่ม timeout
+#     read_timeout=60
+# )
+
+mydb = mysql.connector.pooling.MySQLConnectionPool(
+    pool_name="mypool",
+    pool_size=10,
+    pool_reset_session=True,
     host="202.28.34.197",
     user="web65_64011212185",
     password="64011212185@csmsu",
     database="web65_64011212185",
-    connect_timeout=60,  # เพิ่ม timeout
-    read_timeout=60
 )
+
+
 mycursor = mydb.cursor()
 
 class Item(BaseModel):
