@@ -10,9 +10,13 @@ import mysql.connector #https://www.w3schools.com/python/python_mysql_update.asp
 from googletrans import Translator 
 import datetime
 from fastapi.middleware.cors import CORSMiddleware #เพื่อจัดการกับ Cross-Origin Resource Sharing (CORS) เป็นเทคโนโลยีที่อนุญาตให้เว็บแอปพลิเคชันทำงานร่วมกับแหล่งที่มาจากโดเมนอื่นๆ
+from dotenv import load_dotenv #library สำหรับ load ข้อมูลจากไฟล์ .env
+import os
 
 # ถ้าจะทดสอบ ต้องเป็น IP ของ เน็จที่เชื่อมต่อ ณ ขณะนั้น (แนะนำให้ใช้ IP เน็ตมือถือ)
 # uvicorn main:app --host 192.168.124.29 --port 8080
+
+load_dotenv() # โหลดไฟล์ .env
 
 app = FastAPI()
 
@@ -44,12 +48,20 @@ app.add_middleware(
 # )
 
 # Connect Database
+# def get_db_connection():
+#     return mysql.connector.connect(
+#         host="202.28.34.197",
+#         user="web65_64011212185",
+#         password="64011212185@csmsu",
+#         database="web65_64011212185"
+#     )
+
 def get_db_connection():
     return mysql.connector.connect(
-        host="202.28.34.197",
-        user="web65_64011212185",
-        password="64011212185@csmsu",
-        database="web65_64011212185"
+        host = os.getenv("DB_HOST"),
+        user = os.getenv("DB_USER"),
+        password = os.getenv("DB_PASSWORD"),
+        database = os.getenv("DB_NAME")
     )
 
 # mycursor = mydb.cursor()
@@ -92,7 +104,9 @@ def readb64(uri):
 
 @app.get("/")
 async def read_root():
-    return {"Hello": "Hello World !!!"}
+    return {
+        "Hello": "Hello World !!!"
+    }
 
 
 # API ในการทำ ocr โดยการรับพารามิเตอร์ข้อมูลรูปภาพที่เป็น base64

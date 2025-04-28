@@ -1,0 +1,26 @@
+# Python
+# ไม่เก็บ pycache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+
+# VSCode
+.vscode/
+
+# Environment Variables
+# ไม่เก็บไฟล์ลับ
+.env
+
+# ไม่เก็บไฟล์ log
+*.log
+
+# ไม่เก็บไฟล์ build ชั่วคราว
+build/
+dist/
+
+
+# ไฟล์ Docker-compose override เฉพาะ local
+docker-compose.override.yml

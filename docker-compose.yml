@@ -1,0 +1,15 @@
+version: "3.8"  # ใช้เวอร์ชั่น Compose
+
+services:
+  app:           # ตั้งชื่อ container
+    container_name: magictext
+    build:       # คำสั่ง build จาก Dockerfile
+      context: .   # โฟลเดอร์ปัจจุบัน
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  # เปิด port จากเครื่องจริง -> container
+    env_file:
+      - .env        # โหลด environment variables จากไฟล์ .env
+    volumes:
+      - .:/app      # เอาโค้ดจากเครื่องจริง mount เข้า container (hot reload ได้)
+

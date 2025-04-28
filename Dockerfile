@@ -1,5 +1,5 @@
 # ใช้ Python runtime อย่างเป็นทางการเป็น base image
-FROM python:3.11-slim
+FROM python:3.11-bullseye
 
 # ตั้งค่าตัวแปรสภาพแวดล้อม
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -19,11 +19,14 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . /app/
 
 # ติดตั้ง Tesseract OCR
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
     tesseract-ocr \
     libopencv-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # คำสั่งสำหรับรันแอปพลิเคชัน FastAPI ด้วย Uvicorn
-CMD ["uvicorn", "app.main_3:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main3:app", "--host", "0.0.0.0", "--port", "8000"]
